@@ -30,11 +30,12 @@ AM_CPPFLAGS =-I$(top_srcdir)/include $(LIBINPUT_CFLAGS)
 
 @DRIVER_NAME@_drv_la_LTLIBRARIES = @DRIVER_NAME@_drv.la
 @DRIVER_NAME@_drv_la_LDFLAGS = -module -avoid-version
-@DRIVER_NAME@_drv_la_LIBADD = $(LIBINPUT_LIBS) libdraglock.la libbezier.la -lm
+@DRIVER_NAME@_drv_la_LIBADD = $(LIBINPUT_LIBS) libdraglock.la libbezier.la libtouch_wrapper.la -lm -lrt
 @DRIVER_NAME@_drv_ladir = @inputdir@
 
 @DRIVER_NAME@_drv_la_SOURCES = xf86libinput.c
 
-noinst_LTLIBRARIES = libdraglock.la libbezier.la
+noinst_LTLIBRARIES = libdraglock.la libbezier.la libtouch_wrapper.la
 libdraglock_la_SOURCES = draglock.c draglock.h
 libbezier_la_SOURCES = bezier.c bezier.h
+libtouch_wrapper_la_SOURCES = touch_wrapper.c touch_wrapper.h

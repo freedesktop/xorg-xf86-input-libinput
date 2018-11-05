@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <xorg-server.h>
 #include <list.h>
@@ -44,6 +45,7 @@
 
 #include "bezier.h"
 #include "draglock.h"
+#include "touch_wrapper.h"
 #include "libinput-properties.h"
 
 #ifndef XI86_SERVER_FD
@@ -1685,6 +1687,18 @@ out:
 	xf86PostMotionEventM(dev, Relative, mask);
 }
 
+void
+touch_post_event_dump(InputInfoPtr pInfo, struct touch_post_event *post)
+{
+	xf86IDrvMsg(pInfo, X_INFO, "[Dump]\n");
+	xf86IDrvMsg(pInfo, X_INFO, "\tType: %d\n", post->type);
+	xf86IDrvMsg(pInfo, X_INFO, "\tSent: %d\n", post->sent);
+	xf86IDrvMsg(pInfo, X_INFO, "\tX: %f\n", post->x);
+	xf86IDrvMsg(pInfo, X_INFO, "\tY: %f\n", post->y);
+	xf86IDrvMsg(pInfo, X_INFO, "\tDX: %f\n", post->dx);
+	xf86IDrvMsg(pInfo, X_INFO, "\tDY: %f\n", post->dy);
+}
+
 static void
 xf86libinput_handle_touch(InputInfoPtr pInfo,
 			  struct libinput_event_touch *event,
@@ -1702,6 +1716,9 @@ xf86libinput_handle_touch(InputInfoPtr pInfo,
 	static unsigned int next_touchid;
 	static unsigned int touchids[TOUCH_MAX_SLOTS] = {0};
 
+	struct touch_post_event *post = NULL;
+	int ret;
+
 	if ((driver_data->capabilities & CAP_TOUCH) == 0)
 		return;
 
@@ -1711,12 +1728,61 @@ xf86libinput_handle_touch(InputInfoPtr pInfo,
 		case LIBINPUT_EVENT_TOUCH_DOWN:
 			type = XI_TouchBegin;
 			touchids[slot] = next_touchid++;
+			xf86IDrvMsg(pInfo, X_INFO,"[Touch] down\n");
+			post = calloc(1, sizeof(struct touch_post_event));
+			if (post == NULL) {
+				xf86IDrvMsg(pInfo, X_INFO, "[Touch Down] failed to alloc\n");
+				break;
+			}
+			xf86IDrvMsg(pInfo, X_INFO, "[Touch Down] start struct post\n");
+			post->pInfo = pInfo;
+			post->dev = dev;
+			post->m = m;
+			post->type = type;
+			post->slot = touchids[slot];
+			post->x = libinput_event_touch_get_x(event);
+			post->y = libinput_event_touch_get_y(event);
+			post->dx = libinput_event_touch_get_x_transformed(event, TOUCH_AXIS_MAX);
+			post->dy = libinput_event_touch_get_y_transformed(event, TOUCH_AXIS_MAX);
+			xf86IDrvMsg(pInfo, X_INFO, "[Touch Down] start append post\n");
+			touch_post_event_dump(pInfo, post);
+			ret = touch_post_list_append(post);
+			if (ret == 0) {
+				return;
+			}
 			break;
 		case LIBINPUT_EVENT_TOUCH_UP:
 			type = XI_TouchEnd;
+			xf86IDrvMsg(pInfo, X_INFO,"[Touch] up\n");
+			ret = touch_post_list_end();
+			if (ret == 0) {
+				return;
+			}
 			break;
 		case LIBINPUT_EVENT_TOUCH_MOTION:
 			type = XI_TouchUpdate;
+			xf86IDrvMsg(pInfo, X_INFO,"[Touch] update\n");
+			post = calloc(1, sizeof(struct touch_post_event));
+			if (post == NULL) {
+				xf86IDrvMsg(pInfo, X_INFO, "[Touch Update] failed to alloc\n");
+				break;
+			}
+			xf86IDrvMsg(pInfo, X_INFO, "[Touch Update] start struct post\n");
+			post->pInfo = pInfo;
+			post->dev = dev;
+			post->m = m;
+			post->type = type;
+			post->slot = touchids[slot];
+			post->x = libinput_event_touch_get_x(event);
+			post->y = libinput_event_touch_get_y(event);
+			post->dx = libinput_event_touch_get_x_transformed(event, TOUCH_AXIS_MAX);
+			post->dy = libinput_event_touch_get_y_transformed(event, TOUCH_AXIS_MAX);
+			xf86IDrvMsg(pInfo, X_INFO, "[Touch Update] start append post\n");
+			touch_post_event_dump(pInfo, post);
+			ret = touch_post_list_append(post);
+			if (ret == 0) {
+				return;
+			}
 			break;
 		default:
 			return;

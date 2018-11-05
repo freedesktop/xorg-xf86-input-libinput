@@ -193,4 +193,13 @@
 /* Tablet tool area ratio: CARD32, 2 values, w and h */
 #define LIBINPUT_PROP_TABLET_TOOL_AREA_RATIO "libinput Tablet Tool Area Ratio"
 
+/* Touchscreen long press enabled: BOOL, 1 value */
+#define LIBINPUT_PROP_TOUCH_LONG_PRESS_ENABLED "libinput touch long press enabled"
+
+/* Touchscreen long press buuton for action: INT8, 1 value, default: 3 */
+#define LIBINPUT_PROP_TOUCH_LONG_PRESS_BUTTON "libinput touch long press button"
+
+/* Touchscreen long press duration(ms): INT8, 1 value, default: 600 */
+#define LIBINPUT_PROP_TOUCH_LONG_PRESS_DURATION "libinput touch long press duration"
+
 #endif /* _LIBINPUT_PROPERTIES_H_ */
